@@ -1,9 +1,9 @@
 # CachedStoresFactory
-Extensible factory for the flexible creation of custom cached storage interfaces 
+Extensible factory for the configuration of custom cached storage interfaces 
 
 ## Scope
 
-Imagine you have several remote data sources you want to cache (locally or to another remote but faster resource) using several different caching schemes (TTL - Time To Live, FIFO - First In First Out, etc). This factory allows to quickly implement Store interfaces and combine them to build a chaching mechanism as desired. 
+Imagine you have several remote data sources you want to cache (locally or to another remote but faster resource) using several different caching schemes (TTL - Time To Live, FIFO - First In First Out, etc). This factory allows to quickly implement Store interfaces and combine them to build a caching mechanism as desired. 
 
 ## Examples
 
