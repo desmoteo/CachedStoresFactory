@@ -21,7 +21,7 @@ from cached_stores_factory.factories.cached_store_factory import CachedStoreFact
 #Initialize the Factory
 CSF = CachedStoreFactory(TempfileStore, S3Store, TTLCache)
 
-#Initialize the Store with the required local target, S3 and cache configuration  
+#Initialize the Store with the required local target, remote target and cache configuration  
 CS = CSF.build(local_target='my_local_store', remote_bucketname='my_bucket', remote_s3_profile='my_profile', remote_s3_region='eu-central-1', cache_interval=60.0)
 
 #"Open" a resource to make it available as file like object
@@ -49,7 +49,7 @@ from cached_stores_factory.factories.cached_store_factory import CachedStoreFact
 #Initialize the Factory
 CSF = CachedStoreFactory(S3Store, S3Store, FIFOCache)
 
-#Initialize the Store with the required local target, S3 and cache configuration  
+#Initialize the Store with the required local target, remote target and cache configuration  
 CS = CSF.build(local_bucketname='my_frequent_bucket', local_s3_profile='my_profile', local_s3_region='eu-central-1', remote_bucketname='my_glacier_bucket', remote_s3_profile='my_profile', remote_s3_region='eu-central-1', cache_size=3)
 
 #"Open" a resource to make it available as file like object
