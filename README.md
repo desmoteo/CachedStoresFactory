@@ -24,9 +24,16 @@ CSF = CachedStoreFactory(TempfileStore, S3Store, TTLCache)
 #Initialize the Store with the required local target, S3 and cache configuration  
 CS = CSF.build(local_target='my_local_store', remote_bucketname='my_bucket', remote_s3_profile='my_profile', remote_s3_region='eu-central-1', cache_interval=60.0)
 
-res = CS.read('my_data')
+#"Open" a resource to make it available as file like object
+CSFD = CS.open('path/my.file')
 
-res = CS.write('new_data', data=new_data)
+#Read Cached Store as regular file
+res = CSFD.read()
+
+#Write to Cached Store as regular file 
+CSFD.write(my_data)
+
+
 ```
 
 ### Example 2
@@ -45,9 +52,14 @@ CSF = CachedStoreFactory(S3Store, S3Store, FIFOCache)
 #Initialize the Store with the required local target, S3 and cache configuration  
 CS = CSF.build(local_bucketname='my_frequent_bucket', local_s3_profile='my_profile', local_s3_region='eu-central-1', remote_bucketname='my_glacier_bucket', remote_s3_profile='my_profile', remote_s3_region='eu-central-1', cache_size=3)
 
-res = CS.read('my_data')
+#"Open" a resource to make it available as file like object
+CSFD = CS.open('path/my.file')
 
-res = CS.write('new_data', data=new_data)
+#Read Cached Store as regular file
+res = CSFD.read()
+
+#Write to Cached Store as regular file 
+CSFD.write(my_data)
 ```
 
 ## Documentation
