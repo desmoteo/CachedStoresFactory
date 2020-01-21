@@ -1,6 +1,6 @@
 from cached_stores_factory.store_results.store_result import StoreResult
 
-
+import traceback
 class BaseStore():
     """Virtual class representing the interface of a Store
 
@@ -24,6 +24,7 @@ class BaseStore():
         try:
             res = self._read_proxy(key)
         except Exception as e:
+            traceback.print_exc()
             res = StoreResult(success=False, error=e)
         return res
 
@@ -46,6 +47,7 @@ class BaseStore():
         try:
             res = self._write_proxy(key, wdata)
         except Exception as e:
+            traceback.print_exc()
             res = StoreResult(success=False, error=e)
         return res
 
@@ -64,5 +66,6 @@ class BaseStore():
         try:
             res = self._delete_proxy(key)
         except Exception as e:
+            traceback.print_exc()
             res = StoreResult(success=False, error=e)
         return res

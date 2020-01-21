@@ -15,3 +15,11 @@ class StoreResult():
         self.success = success
         self.error = error
         self.data = data
+
+    def read(self):
+        """Reads Data, to be Used as FD
+
+        Returns:
+            bytes: Returns data
+        """
+        return self.data

@@ -1,5 +1,6 @@
 from cached_stores_factory.store_results.cached_store_result import CachedStoreResult
 
+
 def _remove_prefix(text, prefix):
     """Removes a prefix from a String
 
@@ -11,6 +12,62 @@ def _remove_prefix(text, prefix):
         String: The String with the prefix removed
     """
     return text[text.startswith(prefix) and len(prefix):]
+
+
+class CachedStoreFD():
+    """A class to access Cached Store elements as regular file descriptors
+
+    """
+
+    def __init__(self, key, target_factory):
+        self._target_factory = target_factory
+        self._key = key
+
+    def read(self, info=None):
+        """Reads from CachedStoreFD
+
+        Args:
+            info (dict, optional): a dict to share CachedStoreResult. Defaults to None.
+
+        Returns:
+            bytes: the store element data
+        """
+
+        res = self._target_factory.read(self._key)
+        if isinstance(info, dict):
+            info.update(res.__dict__)
+        return res.data
+
+    def write(self, data):
+        """Writes to CachedStoreFD
+
+        Args:
+            data (bytes): data to be written to store
+        """
+        self._target_factory.write(self._key, data)
+
+
+class CachedStore():
+    """Helper class to open store elements as regular files, invoking the requested factory
+
+    Returns:
+        CachedStoreFD: a file like object,
+            allowing to operate on store elemnts as regular files
+    """
+
+    def __init__(self, target_factory):
+        self._target_factory = target_factory
+
+    def open(self, key):
+        """Builds a CachedStoreFD to acces store elements as regular files
+
+        Args:
+            key (String): the store element to access
+
+        Returns:
+            CachedStoreFD: a file like object to acces store elements as regular files
+        """
+        return CachedStoreFD(key, self._target_factory)
 
 
 class CachedStoreFactory():
@@ -107,7 +164,7 @@ class CachedStoreFactory():
                 """
                 return super()._delete_proxy(key)
 
-        class TargetClass(LocalClass, RemoteClass, CacheSuper):
+        class TargetFactory(LocalClass, RemoteClass, CacheSuper):
             """Target Store Class
 
             Args:
@@ -161,7 +218,7 @@ class CachedStoreFactory():
                 Returns:
                     CachedStoreResult: Operation result
                 """
-                in_cache = False if update else self.check(key) 
+                in_cache = False if update else self.check(key)
                 if in_cache:
                     res = self.read_local(key)
                     if not res.success:
@@ -212,7 +269,7 @@ class CachedStoreFactory():
                     return CachedStoreResult(local_res, False)
                 return CachedStoreResult(remote_res, False)
 
-        self._target_class = TargetClass
+        self._target_class = TargetFactory
 
     def build(self, **kwargs):
         """Build the cahced store instance corresponding to the required configuration
@@ -225,7 +282,8 @@ class CachedStoreFactory():
                 cache_ for cache configuration.
                 See examples  and documentation for details
         Returns:
-            TargetClass: A target class instance compiled as requested
+            CachedStore: An object to cosntruct target class instances compiled as requested,
+                accessible as regular file descriptors
         """
         local_params = {}
         remote_params = {}
@@ -239,4 +297,4 @@ class CachedStoreFactory():
                 cache_params[_remove_prefix(k, 'cache_')] = kwargs[k]
 
         print(local_params, remote_params, cache_params)
-        return self._target_class(local_params, remote_params, cache_params)
+        return CachedStore(self._target_class(local_params, remote_params, cache_params))

@@ -20,7 +20,7 @@ class TempfileStore(BaseStore):
             prefix='{0}_'.format(kwargs.get('target')))
 
     def _read_proxy(self, key):
-        fd = open('{0}/{1}'.format(self.bucketdir.name, key))
+        fd = open('{0}/{1}'.format(self.bucketdir.name, key), 'rb')
         data = fd.read()
         fd.close()
         res = StoreResult(success=True, data=data)
