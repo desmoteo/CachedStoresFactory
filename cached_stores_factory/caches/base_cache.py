@@ -66,8 +66,7 @@ class BaseCache():
         """Checks expired keys and cleans up cache
         """
         deletable = self._check_expired_proxy()
-        for key in deletable:
-            self.delete_local(key)
+        return deletable
 
     def _delete_from_cache_proxy(self, key):
         """Deletes a key from cache, implelentations specific
@@ -91,17 +90,6 @@ class BaseCache():
         """
         self.check_expired()
         return self._delete_from_cache_proxy(key)
-
-    def delete_local(self, key):
-        """Deletes store entry corresponding to cached value key
-
-        Args:
-            key {String} -- the key/entry to delete
-
-        Raises:
-            NotImplementedError: Implementation specific of derived classes
-        """
-        raise NotImplementedError()
 
     def get_cache_status(self):
         """Returns info about the status of the cache

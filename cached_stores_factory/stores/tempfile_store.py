@@ -19,14 +19,14 @@ class TempfileStore(BaseStore):
         self.bucketdir = tempfile.TemporaryDirectory(
             prefix='{0}_'.format(kwargs.get('target')))
 
-    def _read_proxy(self, key):
+    def _read_proxy(self, key, update=False, **kwargs):
         fd = open('{0}/{1}'.format(self.bucketdir.name, key), 'rb')
         data = fd.read()
         fd.close()
         res = StoreResult(success=True, data=data)
         return res
 
-    def _write_proxy(self, key, data):
+    def _write_proxy(self, key, data, **kwargs):
         filepath = '{0}/{1}'.format(self.bucketdir.name, key)
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         fd = open(filepath, 'w+b')

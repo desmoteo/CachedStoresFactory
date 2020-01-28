@@ -4,7 +4,6 @@ import tempfile
 from cached_stores_factory.stores.base_store import BaseStore
 from cached_stores_factory.store_results.store_result import StoreResult
 
-
 class S3Store(BaseStore):
     """Store class based on AWS S3
 
@@ -23,7 +22,7 @@ class S3Store(BaseStore):
         self._s3 = self._session.resource('s3')
         self.bucket = self._s3.Bucket(self.bucketname)
 
-    def _read_proxy(self, key):
+    def _read_proxy(self, key, update=False, **kwargs):
         s3_obj = self.bucket.Object(key)
         with tempfile.NamedTemporaryFile() as fd:
             s3_obj.download_fileobj(fd)
@@ -33,7 +32,7 @@ class S3Store(BaseStore):
         res = StoreResult(success=True, data=data)
         return res
 
-    def _write_proxy(self, key, data):
+    def _write_proxy(self, key, data, **kwargs):
         s3_obj = self.bucket.Object(key)
         bytesdata = io.BytesIO(data)
         s3_obj.upload_fileobj(bytesdata)

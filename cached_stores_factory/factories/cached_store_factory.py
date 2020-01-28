@@ -1,4 +1,5 @@
 from cached_stores_factory.store_results.cached_store_result import CachedStoreResult
+from cached_stores_factory.stores.base_store import BaseStore
 
 
 def _remove_prefix(text, prefix):
@@ -23,7 +24,7 @@ class CachedStoreFD():
         self._target_factory = target_factory
         self._key = key
 
-    def read(self, info=None):
+    def read(self, info=None, **kwargs):
         """Reads from CachedStoreFD
 
         Args:
@@ -33,18 +34,21 @@ class CachedStoreFD():
             bytes: the store element data
         """
 
-        res = self._target_factory.read(self._key)
+        res = self._target_factory.read(self._key, **kwargs)
         if isinstance(info, dict):
             info.update(res.__dict__)
         return res.data
 
-    def write(self, data):
+    def write(self, data, **kwargs):
         """Writes to CachedStoreFD
 
         Args:
             data (bytes): data to be written to store
         """
-        self._target_factory.write(self._key, data)
+        self._target_factory.write(self._key, data, **kwargs)
+
+    def delete(self):
+        self._target_factory.delete(self._key)
 
 
 class CachedStore():
@@ -70,231 +74,153 @@ class CachedStore():
         return CachedStoreFD(key, self._target_factory)
 
 
-class CachedStoreFactory():
+class CachedStoreFactory(BaseStore):
     """A Factory to compose custom cached Stores
 
     """
 
-    def __init__(self, LocalSuper, RemoteSuper, CacheSuper):
+    def __init__(self, local_store, remote_store, cache=None):
         """Factory construnctor
 
         Args:
-            LocalSuper (Class): The Store class to use as local store
-            RemoteSuper (Class): The Store class to use as remote store
-            CacheSuper (Class): The cache class to use
+            local_store: The Store object to use as local store
+            remote_store: The Store objecy to use as remote store
+            cache: The cache object to use, if desired
 
         Returns:
             CachedStoreFactory: A CachedStoreFactory isntance implementing the desired Cached Store
         """
-        class LocalClass(LocalSuper):
-            """Local Store class implementing the local methods
+        self.local_store = local_store
+        self.remote_store = remote_store
+        self.cache = cache
 
-            """
-
-            def read_local(self, key):
-                """Local store read method
-
-                Args:
-                    key (String): the key to loopup in store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._read_proxy(key)
-
-            def write_local(self, key, data):
-                """Local store write method
-
-                Args:
-                    key (String): the key to write in store
-                    data (bytes): the bytearray to write to store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._write_proxy(key, data)
-
-            def delete_local(self, key):
-                """Local store delete method
-
-                Args:
-                    key (String): the key to write in store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._delete_proxy(key)
-
-        class RemoteClass(RemoteSuper):
-            """Remote Store class implementing the remote methods
-
-            """
-
-            def read_remote(self, key):
-                """Remote store read method
-
-                Args:
-                    key (String): the key to loopup in store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._read_proxy(key)
-
-            def write_remote(self, key, data):
-                """Remote store write method
-
-                Args:
-                    key (String): the key to loopup in store
-                    data (bytes): the bytearray to write to store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._write_proxy(key, data)
-
-            def delete_remote(self, key):
-                """Remote store delete method
-
-                Args:
-                    key (String): the key to loopup in store
-
-                Returns:
-                    StoreResult: The result of the Store Operation
-                """
-                return super()._delete_proxy(key)
-
-        class TargetFactory(LocalClass, RemoteClass, CacheSuper):
-            """Target Store Class
-
-            Args:
-                LocalClass (Class): The Store class to use as local store
-                RemoteClass (Class): The Store class to use as remote store
-                CacheSuper (Class): The cache class to use
-
-            """
-
-            def __init__(self, local_options, remote_options, cache_options):
-                """Target Store constructor
-
-                Args:
-                    local_options (Dict): Local Store kwargs
-                    remote_options (Dict): Remote Store kwargs
-                    cache_options (Dict): Cache kwarg
-                """
-                LocalClass.__init__(self, **local_options)
-                RemoteClass.__init__(self, **remote_options)
-                CacheSuper.__init__(self, **cache_options)
-
-            def _push_to_cache(self, key, data):
-                """Add key entry to cache
-
-                Args:
-                    key (String): the key to persist in cache
-                    data (bytes): the data corresponding to key
-
-                Returns:
-                    [type]: [description]
-                """
-                local_res = self.write_local(key, data)
-                if local_res.success:
-                    self.add_to_cache(key)
-                    local_res = self.read_local(key)
-                    if not local_res.success:
-                        print('Local Store save failed: {0}'.format(
-                            local_res.error))
-                else:
-                    print('Local Store save failed: {0}'.format(
-                        local_res.error))
-                return local_res
-
-            def _read_proxy(self, key, update=False):
-                """Reads record from cached store 
-
-                Args:
-                    key (String): the key to lookup in cached store
-                    update (bool, optional): . Defaults to False.
-
-                Returns:
-                    CachedStoreResult: Operation result
-                """
-                in_cache = False if update else self.check(key)
-                if in_cache:
-                    res = self.read_local(key)
-                    if not res.success:
-                        print(
-                            'Local file not found ({0}), falling back to remote!'.format(res.error))
-                        res = self.read_remote(key)
-                        self._delete_from_cache(key)
-                        if res.success:
-                            res = self._push_to_cache(key, res.data)
-                else:
-                    res = self.read_remote(key,)
-                    if res.success:
-                        res = self._push_to_cache(key, res.data)
-
-                return CachedStoreResult(res, in_cache)
-
-            def _write_proxy(self, key, data):
-                """Writes record to cached store
-
-                Args:
-                    key (String): the key to write in cached store
-                    data (bytes): the data to write in cache store for key
-
-                Returns:
-                    CachedStoreResult: Operation result
-                """
-                res = self.write_remote(key, data)
-                print(res.success)
-                if res.success:
-                    res = self._push_to_cache(key, data)
-                return CachedStoreResult(res, False)
-
-            def _delete_proxy(self, key):
-                """Deletes record from cahced store
-
-                Args:
-                    key (String): the key to delete from cached store
-
-                Returns:
-                    CachedStoreResult: Operation result
-                """
-                self._delete_from_cache(key)
-                remote_res = self.delete_remote(key)
-                local_res = self.delete_local(key)
-                if not remote_res.success:
-                    return CachedStoreResult(remote_res, False)
-                if not local_res.success:
-                    return CachedStoreResult(local_res, False)
-                return CachedStoreResult(remote_res, False)
-
-        self._target_class = TargetFactory
-
-    def build(self, **kwargs):
-        """Build the cahced store instance corresponding to the required configuration
+    def add_to_cache(self, key):
+        """Adds a key to the explicit cache, if defined
 
         Args:
-            **kwargs: a list of arguments required to configure the desired subclasses.
-                Prefix is used to redirect kwargs to required bas class:
-                local_ for Local Store configuration
-                remote_ for Remote Store configuration
-                cache_ for cache configuration.
-                See examples  and documentation for details
-        Returns:
-            CachedStore: An object to cosntruct target class instances compiled as requested,
-                accessible as regular file descriptors
-        """
-        local_params = {}
-        remote_params = {}
-        cache_params = {}
-        for k in kwargs:
-            if k.startswith('local_'):
-                local_params[_remove_prefix(k, 'local_')] = kwargs[k]
-            elif k.startswith('remote_'):
-                remote_params[_remove_prefix(k, 'remote_')] = kwargs[k]
-            elif k.startswith('cache_'):
-                cache_params[_remove_prefix(k, 'cache_')] = kwargs[k]
+            key (String): The key to add to the explicit cache
 
-        print(local_params, remote_params, cache_params)
-        return CachedStore(self._target_class(local_params, remote_params, cache_params))
+        Returns:
+            n/a: implementation dependent
+        """
+        if self.cache is not None:
+            return self.cache.add_to_cache(key)
+        return None
+
+    def check(self, key):
+        """Checks the key in the explicit cache, if defined
+
+        Args:
+            key (String): the key to lookup in the explicit cache
+
+        Returns:
+            bool: The result of the lookup
+        """
+        if self.cache is not None:
+            return self.cache.check(key)
+        return True
+
+    def delete_from_cache(self, key):
+        """Deletes the key from the explicit cache, if defined
+
+        Args:
+            key (String): the key to delete from the explicit cache
+
+        Returns:
+            n/a: implementation dependent
+        """
+        if self.cache is not None:
+            return self.cache.delete_from_cache(key)
+        return None
+
+    def _push_to_cache(self, key, data, **kwargs):
+        """Add key entry to cache
+
+        Args:
+            key (String): the key to persist in cache
+            data (bytes): the data corresponding to key
+
+        Returns:
+            [type]: [description]
+        """
+        local_res = self.local_store.write(key, data, **kwargs)
+        if local_res.success:
+            self.add_to_cache(key)
+            local_res = self.local_store.read(key)
+            if not local_res.success:
+                print('Local Store save failed: {0}'.format(
+                    local_res.error))
+        else:
+            print('Local Store save failed: {0}'.format(
+                local_res.error))
+        return local_res
+
+    def _read_proxy(self, key, update=False, **kwargs):
+        """Reads record from cached store 
+
+        Args:
+            key (String): the key to lookup in cached store
+            update (bool, optional): . Defaults to False.
+
+        Returns:
+            CachedStoreResult: Operation result
+        """
+        in_cache = False if update else self.check(key)
+        if in_cache:
+            res = self.local_store.read(key)
+            if not res.success:
+                in_cache = False
+                print(
+                    'Local file not found ({0}), falling back to remote!'.format(res.error))
+                res = self.remote_store.read(key)
+                self.delete_from_cache(key)
+                if res.success:
+                    res = self._push_to_cache(key, res.data, **kwargs)
+        else:
+            res = self.remote_store.read(key,)
+            if res.success:
+                res = self._push_to_cache(key, res.data, **kwargs)
+
+        return CachedStoreResult(res, in_cache)
+
+    def _write_proxy(self, key, data, **kwargs):
+        """Writes record to cached store
+
+        Args:
+            key (String): the key to write in cached store
+            data (bytes): the data to write in cache store for key
+
+        Returns:
+            CachedStoreResult: Operation result
+        """
+        res = self.remote_store.write(key, data, **kwargs)
+        print(res.success)
+        if res.success:
+            res = self._push_to_cache(key, data, **kwargs)
+        return CachedStoreResult(res, False)
+
+    def _delete_proxy(self, key):
+        """Deletes record from cahced store
+
+        Args:
+            key (String): the key to delete from cached store
+
+        Returns:
+            CachedStoreResult: Operation result
+        """
+        self.delete_from_cache(key)
+        remote_res = self.remote_store.delete(key)
+        local_res = self.local_store.delete(key)
+        if not remote_res.success:
+            return CachedStoreResult(remote_res, False)
+        if not local_res.success:
+            return CachedStoreResult(local_res, False)
+        return CachedStoreResult(remote_res, False)
+
+    def build(self):
+        """Build the desired CachedStore
+
+        Returns:
+            CachedStore: A Cached Store configured as desired by means of the Factory
+        """
+        return CachedStore(self)

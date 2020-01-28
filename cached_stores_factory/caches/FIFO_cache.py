@@ -62,14 +62,3 @@ class FIFOCache(BaseCache):
             List: The FIFO list
         """
         return self.fifo
-
-    def delete_local(self, key):
-        """Deletes local coopy of entry key
-
-        Args:
-            key (String): The store entry key
-
-        Raises:
-            NotImplementedError: Implemented at execution time by the Factory!
-        """
-        raise NotImplementedError()
